@@ -8,8 +8,31 @@
     "build": "ng-packagr -p ng-package.json",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e"
+    "e2e": "ng e2e",
+    "publish": "npm publish dist"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ledzz/ngx-phone-mask.git"
+  },
+  "bugs": {
+    "web": "https://github.com/Ledzz/ngx-phone-mask/issues"
+  },
+  "keywords": [
+    "angular",
+    "angular2",
+    "angular4",
+    "component",
+    "mask",
+    "phone",
+    "number",
+    "ng-model",
+    "form-control",
+    "masking",
+    "international"
+  ],
+  "author": "Ledzz",
+  "license": "ISC",
   "dependencies": {
     "@angular/common": "^4.0.0",
     "@angular/compiler": "^4.0.0",

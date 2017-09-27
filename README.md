@@ -13,9 +13,9 @@ Import in your `app.module.ts`:
 import { NgxPhoneMaskModule } from 'ngx-phone-mask';
 
 @NgModule({
-	imports: [
-		NgxPhoneMaskModule
-	]
+  imports: [
+    NgxPhoneMaskModule
+  ]
 })
 ```
 
@@ -31,3 +31,6 @@ or
 ## Config
 You can set `valueType` to `'clean'`, `'raw'` or `'full'` to change output format.
 Default is `'clean'`.
+
+## Contribution
+This component is under development. Pull requests and issues (PR's better) are welcome.
