@@ -1,7 +1,7 @@
 {
   "name": "ngx-phone-mask",
-  "version": "1.0.1",
-  "license": "MIT",
+  "version": "1.0.2",
+  "license": "ISC",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -32,7 +32,6 @@
     "international"
   ],
   "author": "Ledzz",
-  "license": "ISC",
   "dependencies": {
     "@angular/common": "^4.0.0",
     "@angular/compiler": "^4.0.0",
