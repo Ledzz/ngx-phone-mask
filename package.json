@@ -9,7 +9,7 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
-    "publish": "npm publish dist"
+    "npm-publish": "npm publish dist"
   },
   "repository": {
     "type": "git",
