@@ -1,8 +1,10 @@
-import { Component, ViewChild, ElementRef } from '@angular/core';
+import { Component, ViewChild, ElementRef, Input, forwardRef  } from '@angular/core';
+import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 import { phoneCodes } from './phone-codes';
 
-// const InputMask = require('inputmask-core');
 import InputMask from 'inputmask-core';
+
+const noop = () => { };
 
 const countPlaceholders = code => code.replace('\\1', '').replace(/[^1]/gm, '').length;
 
@@ -40,9 +42,20 @@ const defaultMask = '+1 (111) 111-11-11';
 @Component({
 	selector: 'ngx-phone-mask',
 	templateUrl: './ngx-phone-mask.component.html',
-	styleUrls: ['./ngx-phone-mask.component.css']
+	styleUrls: ['./ngx-phone-mask.component.css'],
+	providers: [
+		{
+			provide: NG_VALUE_ACCESSOR,
+			useExisting: forwardRef(() => NgxPhoneMaskComponent),
+			multi: true
+		}
+	]
 })
-export class NgxPhoneMaskComponent {
+export class NgxPhoneMaskComponent implements ControlValueAccessor {
+	private onTouchedCallback: () => void = noop;
+	private onChangeCallback: (_: any) => void = noop;
+
+	@Input() public valueType: 'clean' | 'raw' | 'full' = 'clean';
 	@ViewChild('input') public input: ElementRef;
 
 	public mask = new InputMask({
@@ -50,6 +63,7 @@ export class NgxPhoneMaskComponent {
 		isRevealingMask: true
 	});
 	public code;
+	public disabled;
 
 	constructor() {	}
 
@@ -58,13 +72,7 @@ export class NgxPhoneMaskComponent {
 		event.preventDefault();
 
 		if (event.key === 'Backspace') {
-			if (phoneCodes.find(code => cleanMask(code.mask) === this.cleanValue())) {
-				console.log('asdfasdfasdf');
-				this.mask.setPattern(defaultMask);
-			} else {
-				this.mask.backspace();
-			}
-			this.updateInputView();
+			this.onBackspace();
 			return;
 		}
 		if (char.length !== 1) {
@@ -72,6 +80,28 @@ export class NgxPhoneMaskComponent {
 		}
 		const value = this.cleanValue() + char;
 
+		this.setMask(value);
+
+		this.mask.input(char);
+		this.updateInputView();
+	}
+
+	onBackspace() {
+		if (phoneCodes.find(code => cleanMask(code.mask) === this.cleanValue())) {
+			this.mask.setPattern(defaultMask);
+		} else {
+			const old = this.mask.getValue();
+			while (this.mask.getValue() === old && this.cleanValue() !== '+') {
+				this.mask.backspace();
+			}
+		}
+		const value = this.cleanValue();
+
+		this.setMask(value);
+
+		this.updateInputView();
+	}
+	setMask(value) {
 		const properCodes = phoneCodes.filter(code => codeFitsMask(value, code.mask));
 
 		const commonCode = mostCommonCode(properCodes);
@@ -87,27 +117,56 @@ export class NgxPhoneMaskComponent {
 		if (fullMatch.length) { // Если мы можем точно определить страну
 			useCode = fullMatch[0];
 		}
+
 		if (useCode) {
 			this.code = useCode;
-			console.log(value, this.code.mask)
 			this.mask.setPattern(this.code.mask, {
 				value,
 				selection: this.mask.selection
 			});
 		}
-
-		this.mask.input(char);
-		this.updateInputView();
 	}
-
 	updateInputView() {
 		const input = this.input.nativeElement;
-		console.log('text in input: ' + this.mask.getValue())
+		this.emitValue();
 		input.value = this.mask.getValue();
 		input.setSelectionRange(this.mask.selection.start, this.mask.selection.end);
 	}
 
 	cleanValue() {
 		return '+' + this.mask.getValue().replace(/\D/gm, '');
+	}
+
+	emitValue() {
+		let value;
+		switch(this.valueType) {
+			case 'clean':
+				value = this.cleanValue();
+				break;
+			case 'raw':
+				value = this.mask.getRawValue();
+				break;
+			case 'full':
+				value = this.mask.getValue();
+				break;
+		}
+		this.onChangeCallback(value);
+	}
+	
+	// From ControlValueAccessor interface
+	writeValue(value: any) {
+		this.mask.setValue(value);
+	}
+
+	registerOnChange(fn: any) {
+		this.onChangeCallback = fn;
+	}
+
+	registerOnTouched(fn: any) {
+		this.onTouchedCallback = fn;
+	}
+
+	setDisabledState(isDisabled) {
+		this.disabled = isDisabled;
 	}
 }
