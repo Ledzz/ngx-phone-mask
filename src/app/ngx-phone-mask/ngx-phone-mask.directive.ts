@@ -1,5 +1,6 @@
-import { Component, ViewChild, ElementRef, Input, forwardRef  } from '@angular/core';
+import { Component, ViewChild, ElementRef, Input, forwardRef, Directive, HostListener  } from '@angular/core';
 import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
+
 import { phoneCodes } from './phone-codes';
 
 import InputMask from 'inputmask-core';
@@ -39,34 +40,35 @@ const valueFitsMask = (value, mask) => {
 
 const defaultMask = '+1 (111) 111-11-11';
 
-@Component({
-	selector: 'ngx-phone-mask',
-	templateUrl: './ngx-phone-mask.component.html',
-	styleUrls: ['./ngx-phone-mask.component.css'],
+@Directive({
+	selector: '[ngxPhoneMask]',
 	providers: [
 		{
 			provide: NG_VALUE_ACCESSOR,
-			useExisting: forwardRef(() => NgxPhoneMaskComponent),
+			useExisting: forwardRef(() => NgxPhoneMaskDirective),
 			multi: true
 		}
 	]
 })
-export class NgxPhoneMaskComponent implements ControlValueAccessor {
+export class NgxPhoneMaskDirective {
+
 	private onTouchedCallback: () => void = noop;
 	private onChangeCallback: (_: any) => void = noop;
 
 	@Input() public valueType: 'clean' | 'raw' | 'full' = 'clean';
-	@ViewChild('input') public input: ElementRef;
+	@Input() public showMask: boolean = true;
 
 	public mask = new InputMask({
-		pattern: defaultMask,
-		isRevealingMask: true
+		pattern: defaultMask
 	});
 	public code;
 	public disabled;
 
-	constructor() {	}
+	constructor(private input: ElementRef) {
+		console.log(this.input)
+	}
 
+	@HostListener('keydown', ['$event'])
 	onInput(event) {
 		const char = event.key;
 		event.preventDefault();
@@ -126,11 +128,23 @@ export class NgxPhoneMaskComponent implements ControlValueAccessor {
 			});
 		}
 	}
+	valueWithoutMask() {
+		const value = this.mask.getValue();
+		const cleanValue = this.cleanValue();
+		const lastChar = cleanValue[cleanValue.length - 1];
+		const lastIndex = value.lastIndexOf(lastChar);
+		return value.substr(0, lastIndex + 1);
+	}
 	updateInputView() {
 		const input = this.input.nativeElement;
 		this.emitValue();
-		input.value = this.mask.getValue();
-		input.setSelectionRange(this.mask.selection.start, this.mask.selection.end);
+
+		if (this.showMask) {
+			input.value = this.mask.getValue();
+			input.setSelectionRange(this.mask.selection.start, this.mask.selection.end);
+		} else {
+			input.value = this.valueWithoutMask();
+		}
 	}
 
 	cleanValue() {

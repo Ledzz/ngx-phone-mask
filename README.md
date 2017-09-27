@@ -1,6 +1,6 @@
 # NgxPhoneMask
 
-Angular component for autoformatting international phone numbers.
+Angular directive for autoformatting international phone numbers.
 
 ## Usage
 Install via npm:
@@ -21,16 +21,28 @@ import { NgxPhoneMaskModule } from 'ngx-phone-mask';
 
 Use it:
 ```html
-<ngx-phone-mask [(ngModel)]='yourModelName'></ngx-phone-mask>
+<input ngxPhoneMask [(ngModel)]='yourModelName'>
 or
-<ngx-phone-mask [formControl]='yourControl'></ngx-phone-mask>
+<input ngxPhoneMask [formControl]='yourControl'>
 or
-<ngx-phone-mask formControlName='yourControlName'></ngx-phone-mask>
+<input ngxPhoneMask formControlName='yourControlName'>
 ```
 
 ## Config
 You can set `valueType` to `'clean'`, `'raw'` or `'full'` to change output format.
 Default is `'clean'`.
+```html
+<input ngxPhoneMask [(ngModel)]='yourModelName' valueType='full'>
+
+```
 
 ## Contribution
 This component is under development. Pull requests and issues (PR's better) are welcome.
+
+To publish:
+```
+git commit
+npm version patch
+npm run build
+npm publish dist
+```

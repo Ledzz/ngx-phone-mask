@@ -1,12 +1,12 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NgxPhoneMaskComponent } from './ngx-phone-mask.component';
+import { NgxPhoneMaskDirective } from './ngx-phone-mask.directive';
 
 @NgModule({
-  imports: [
-    CommonModule
-  ],
-  declarations: [NgxPhoneMaskComponent],
-  exports: [NgxPhoneMaskComponent]
+  	imports: [
+		CommonModule
+	],
+	declarations: [NgxPhoneMaskDirective],
+	exports: [NgxPhoneMaskDirective]
 })
 export class NgxPhoneMaskModule { }

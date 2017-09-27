@@ -8,8 +8,7 @@
     "build": "ng-packagr -p ng-package.json",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e",
-    "npm-publish": "npm publish dist"
+    "e2e": "ng e2e"
   },
   "repository": {
     "type": "git",
@@ -22,7 +21,7 @@
     "angular",
     "angular2",
     "angular4",
-    "component",
+    "directive",
     "mask",
     "phone",
     "number",
