@@ -1,5 +1,6 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
+import { NgxPhoneMaskModule } from './ngx-phone-mask/ngx-phone-mask.module';
 
 import { AppComponent } from './app.component';
 
@@ -8,7 +9,8 @@ import { AppComponent } from './app.component';
     AppComponent
   ],
   imports: [
-    BrowserModule
+    BrowserModule,
+    NgxPhoneMaskModule
   ],
   providers: [],
   bootstrap: [AppComponent]
