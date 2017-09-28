@@ -96,7 +96,8 @@ export class NgxPhoneMaskDirective {
 			this.mask.setPattern(defaultMask);
 		} else {
 			const old = this.mask.getValue();
-			while (this.mask.getValue() === old && this.cleanValue() !== '+') {
+			let i = 4;
+			while (this.mask.getValue() === old && this.cleanValue() !== '+' && i >= 0) {
 				this.mask.backspace();
 			}
 		}
