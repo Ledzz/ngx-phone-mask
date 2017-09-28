@@ -64,9 +64,7 @@ export class NgxPhoneMaskDirective {
 	public code;
 	public disabled;
 
-	constructor(private input: ElementRef) {
-		console.log(this.input)
-	}
+	constructor(private input: ElementRef) { }
 
 	@HostListener('keydown', ['$event'])
 	onInput(event) {
@@ -170,6 +168,7 @@ export class NgxPhoneMaskDirective {
 	// From ControlValueAccessor interface
 	writeValue(value: any) {
 		this.mask.setValue(value);
+		this.updateInputView();
 	}
 
 	registerOnChange(fn: any) {
