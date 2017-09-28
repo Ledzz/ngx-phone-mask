@@ -174,8 +174,27 @@ export class NgxPhoneMaskDirective {
 	
 	// From ControlValueAccessor interface
 	writeValue(value: any) {
-		this.mask.setValue(value);
+		const selection = {
+			start: 0,
+			end: 0
+		};
+		if (value) {
+			selection.start = value.length - 1;
+			selection.end = value.length - 1;
+		}
+		this.mask.setValue(value, {
+			selection
+		});
 		this.updateInputView();
+	}
+
+	@HostListener('focus') onFocus() {
+		setTimeout(() => {
+			this.mask.setSelection({
+				start: this.input.nativeElement.selectionStart,
+				end: this.input.nativeElement.selectionEnd
+			})
+		}, 0)
 	}
 
 	registerOnChange(fn: any) {

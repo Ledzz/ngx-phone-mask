@@ -6,5 +6,9 @@ import { Component } from '@angular/core';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {
-  phone = '';
+	phone = '';
+
+	constructor() {
+		setTimeout(() => this.phone = '+79991569231', 1000);
+	}
 }
