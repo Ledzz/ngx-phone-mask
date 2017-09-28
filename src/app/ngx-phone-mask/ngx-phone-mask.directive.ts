@@ -69,6 +69,11 @@ export class NgxPhoneMaskDirective {
 	@HostListener('keydown', ['$event'])
 	onInput(event) {
 		const char = event.key;
+
+		if (!char) {
+			return;
+		}
+		
 		event.preventDefault();
 
 		if (event.key === 'Backspace') {
