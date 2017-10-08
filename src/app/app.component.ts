@@ -9,6 +9,6 @@ export class AppComponent {
 	phone = '';
 
 	constructor() {
-		setTimeout(() => this.phone = '+79991569231', 1000);
+		setTimeout(() => this.phone = '', 1000);
 	}
 }

@@ -1,44 +1,69 @@
 import { Component, ViewChild, ElementRef, Input, forwardRef, Directive, HostListener  } from '@angular/core';
 import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 
-import { phoneCodes } from './phone-codes';
-
-import InputMask from 'inputmask-core';
-
 const noop = () => { };
 
-const countPlaceholders = code => code.replace('\\1', '').replace(/[^1]/gm, '').length;
+const masks = [
+	'1',
+	'1 (1',
+	'1 (11',
+	'1 (111',
+	'1 (111) 1',
+	'1 (111) 11',
+	'1 (111) 11-1',
+	'1 (111) 11-11',
+	'1 (111) 11-111',
+	'1 (111) 111-111',
+	'1 (111) 111-11-11',
+	'1 (111) 111-111-11'
+];
 
-const mostCommonCode = (codes) => {
-	return codes.sort((a, b) => {
-		return countPlaceholders(a.mask) > countPlaceholders(b.mask) ? -1 : 1;
-	})[0];
-}
-const cleanMask = (mask) => {
-	return mask
-		.replace(/[\s\(\)\-]/gm, '')
-		.replace(/\\1/gm, '-')
-		.replace(/1/gm, '')
-		.replace(/\-/gm, '1');
-}
-const codeFitsMask = (value, mask) => {
-	const cleanedMask = cleanMask(mask)
-	return value.startsWith(cleanedMask) || cleanedMask.startsWith(value);
-}
-
-const valueFitsMask = (value, mask) => {
-	const maskRegexpString = mask
-		.replace(/[\s\(\)\-]/gm, '')
-		.replace(/\\1/gm, '-')
-		.replace(/1/gm, '\\d')
-		.replace(/\+/gm, '\\+')
-		.replace(/\-/gm, '1');
-
-	const maskRegexp = new RegExp(maskRegexpString);
-	return maskRegexp.test(value);
+const clean = (number) => {
+	return number
+		.toString()
+		.replace(/[^\d\^]/gm, '');
 }
 
-const defaultMask = '+1 (111) 111-11-11';
+const format = (number) => {
+	let lastCharIndex = 0;
+	const cleanValue = clean(number);
+	const charCount = cleanValue.replace(/\^/gm, '').length;
+	if (charCount === 0) {
+		return {
+			formatted: '',
+			cursorPosition: 0
+		};
+	}
+	const mask = masks[charCount - 1];
+	if (charCount > 1 && !mask) {
+		return null;
+	}
+	let cursorPosition;
+	const formatted = mask.split('').map((c, i) => {
+		if (c === '1') {
+			if (cleanValue[lastCharIndex] == '^') {
+				cursorPosition = i + 1;
+				lastCharIndex++;
+			}
+
+			lastCharIndex++;
+			return cleanValue[lastCharIndex - 1];
+		} else {
+			return c;
+		}
+	}).join('');
+
+	if (!cursorPosition) {
+		cursorPosition = formatted.length;
+	}
+
+	cursorPosition++; // because of '+'
+
+	return {
+		formatted: `+${formatted}`,
+		cursorPosition
+	}
+}
 
 @Directive({
 	selector: '[ngxPhoneMask]',
@@ -55,146 +80,65 @@ export class NgxPhoneMaskDirective {
 	private onTouchedCallback: () => void = noop;
 	private onChangeCallback: (_: any) => void = noop;
 
-	@Input() public valueType: 'clean' | 'raw' | 'full' = 'clean';
+	@Input() public valueType: 'clean' | 'full' = 'clean';
 	@Input() public showMask: boolean = true;
 
-	public mask = new InputMask({
-		pattern: defaultMask
-	});
-	public code;
 	public disabled;
+	private _value;
+	private oldValue = '';
 
-	constructor(private input: ElementRef) { }
-
-	@HostListener('keydown', ['$event'])
-	onInput(event) {
-		const char = event.key;
-
-		if (!char) {
-			return;
-		}
-		
-		event.preventDefault();
-
-		if (event.key === 'Backspace') {
-			this.onBackspace();
-			return;
-		}
-		if (char.length !== 1) {
-			return;
-		}
-		const value = this.cleanValue() + char;
-
-		this.setMask(value);
-
-		this.mask.input(char);
-		this.updateInputView();
+	constructor(private input: ElementRef) {
 	}
 
-	onBackspace() {
-		if (phoneCodes.find(code => cleanMask(code.mask) === this.cleanValue())) {
-			this.mask.setPattern(defaultMask);
-		} else {
-			const old = this.mask.getValue();
-			let i = 4;
-			while (this.mask.getValue() === old && this.cleanValue() !== '+' && i >= 0) {
-				i--;
-				this.mask.backspace();
-			}
-		}
-		const value = this.cleanValue();
-
-		this.setMask(value);
-
-		this.updateInputView();
-	}
-	setMask(value) {
-		const properCodes = phoneCodes.filter(code => codeFitsMask(value, code.mask));
-
-		const commonCode = mostCommonCode(properCodes);
-
-		const fullMatch = properCodes.filter(code => valueFitsMask(value, code.mask));
-
-		let useCode;
-
-		if (properCodes.length === 1) { // Если мы можем точно определить страну
-			useCode = commonCode;
-		}
-
-		if (fullMatch.length) { // Если мы можем точно определить страну
-			useCode = fullMatch[0];
-		}
-
-		if (useCode) {
-			this.code = useCode;
-			this.mask.setPattern(this.code.mask, {
-				value,
-				selection: this.mask.selection
-			});
-		}
-	}
-	valueWithoutMask() {
-		const value = this.mask.getValue();
-		const cleanValue = this.cleanValue();
-		const lastChar = cleanValue[cleanValue.length - 1];
-		const lastIndex = value.lastIndexOf(lastChar);
-		return value.substr(0, lastIndex + 1);
-	}
 	updateInputView() {
 		const input = this.input.nativeElement;
-		this.emitValue();
+		const cursorPosition = input.selectionStart;
+		const value = this._value;
+		const valueWithCursor = value.substring(0, cursorPosition) + '^' + value.substring(cursorPosition);
 
-		if (this.showMask) {
-			input.value = this.mask.getValue();
-			input.setSelectionRange(this.mask.selection.start, this.mask.selection.end);
-		} else {
-			input.value = this.valueWithoutMask();
+		const formatted = format(valueWithCursor);
+
+		if (!formatted) {
+			input.value = this.oldValue;
+			return;
+		}
+
+		const newValue = formatted.formatted;
+		if (newValue != input.value) {
+			input.value = newValue;
+			this.oldValue = newValue;
+			input.setSelectionRange(formatted.cursorPosition, formatted.cursorPosition);
+			this.emitValue(newValue);
 		}
 	}
 
-	cleanValue() {
-		return '+' + this.mask.getValue().replace(/\D/gm, '');
-	}
-
-	emitValue() {
+	emitValue(v) {
 		let value;
 		switch(this.valueType) {
 			case 'clean':
-				value = this.cleanValue();
-				break;
-			case 'raw':
-				value = this.mask.getRawValue();
+				value = v.replace(/[^\d\+]/gm, '');
 				break;
 			case 'full':
-				value = this.mask.getValue();
+				value = v;
 				break;
 		}
 		this.onChangeCallback(value);
 	}
-	
-	// From ControlValueAccessor interface
-	writeValue(value: any) {
-		const selection = {
-			start: 0,
-			end: 0
-		};
-		if (value) {
-			selection.start = value.length - 1;
-			selection.end = value.length - 1;
-		}
-		this.mask.setValue(value, {
-			selection
-		});
+
+	@HostListener('input')
+	onInput() {
+		this._value = this.input.nativeElement.value;
 		this.updateInputView();
 	}
 
-	@HostListener('focus') onFocus() {
-		setTimeout(() => {
-			this.mask.setSelection({
-				start: this.input.nativeElement.selectionStart,
-				end: this.input.nativeElement.selectionEnd
-			})
-		}, 0)
+	set value(v) {
+		let value = v ? v : '';
+		this._value = value;
+		this.updateInputView();
+	}
+	// From ControlValueAccessor interface
+	writeValue(value: any) {
+		this.value = value;
 	}
 
 	registerOnChange(fn: any) {
