@@ -98,6 +98,7 @@ export class NgxPhoneMaskDirective {
 
 		const formatted = format(valueWithCursor);
 
+
 		if (!formatted) {
 			input.value = this.oldValue;
 			return;
@@ -106,10 +107,10 @@ export class NgxPhoneMaskDirective {
 		const newValue = formatted.formatted;
 		if (newValue != input.value) {
 			input.value = newValue;
-			this.oldValue = newValue;
 			input.setSelectionRange(formatted.cursorPosition, formatted.cursorPosition);
-			this.emitValue(newValue);
 		}
+		this.oldValue = newValue;
+		this.emitValue(newValue);
 	}
 
 	emitValue(v) {
