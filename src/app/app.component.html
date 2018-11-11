@@ -1,3 +1,8 @@
 <h1>Simple demo</h1>
 <input type='text' ngxPhoneMask [(ngModel)]='number'>
-{{number}}
+
+<h2>Model value</h2>
+{{number}}<br>
+
+<h2>Formatted model value</h2>
+{{number | ngxPhoneMask}}
