@@ -11,7 +11,7 @@ import {
 import { NG_VALUE_ACCESSOR, ControlValueAccessor, COMPOSITION_BUFFER_MODE } from '@angular/forms';
 import { ɵgetDOM as getDOM } from '@angular/platform-browser';
 import { createTextMaskInputElement } from 'text-mask-core/dist/textMaskCore';
-import { mask } from './utils';
+import { mask, clean } from './utils';
 
 export class TextMaskConfig {
 	mask: Array<string | RegExp> | ((raw: string) => Array<string | RegExp>) | false;
@@ -21,12 +21,6 @@ export class TextMaskConfig {
 	keepCharPositions?: boolean;
 	showMask?: boolean;
 }
-
-const clean = (number) => {
-	return number
-		.toString()
-		.replace(/[^\d\^\+]/gm, '');
-};
 
 /**
  * We must check whether the agent is Android because composition events
