@@ -1,7 +1,7 @@
 import {
 	Directive,
 	ElementRef,
-	forwardRef,
+	forwardRef, HostListener,
 	Inject, Input,
 	OnChanges, OnInit,
 	Optional,
