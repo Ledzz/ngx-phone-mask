@@ -5,7 +5,7 @@ export const clean = (number) => {
 };
 
 export const mask = () => (rawValue) => {
-	if (!rawValue || clean(rawValue).length <= 12) {
+	if (clean(rawValue).length <= 12) {
 		return ['+', /[1-9]/, ' ', '(', /[1-9]/, /\d/, /\d/, ')', ' ', /\d/, /\d/, /\d/, '-', /\d/, /\d/, '-', /\d/, /\d/];
 	}
 

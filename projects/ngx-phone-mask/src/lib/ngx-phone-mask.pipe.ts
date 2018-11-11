@@ -8,6 +8,10 @@ import { mask } from './utils';
 
 export class NgxPhoneMaskPipe implements PipeTransform {
 	transform(value: string): string {
+		if (!value) {
+			return '';
+		}
+
 		return conformToMask(
 			value,
 			mask(),
