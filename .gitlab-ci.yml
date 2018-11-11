@@ -51,8 +51,8 @@ build:master:
 deploy:master:
   stage: deploy
   script:
-    - mv dist/ngx-phone-mask/index.html dist/ngx-phone-mask/200.html
-    - PATH=$(npm bin):$PATH surge --project ./dist/ngx-phone-mask --domain https://ngx-phone-mask.surge.sh
+    - mv dist/ngx-phone-mask-demo/index.html dist/ngx-phone-mask-demo/200.html
+    - PATH=$(npm bin):$PATH surge --project ./dist/ngx-phone-mask-demo --domain https://ngx-phone-mask.surge.sh
   only:
     - master
   dependencies:
