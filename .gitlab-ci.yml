@@ -1,3 +1,4 @@
+image: node:alpine
 cache:
   key: ${CI_BUILD_REF_NAME}_1
   paths:
@@ -19,8 +20,6 @@ build:tags:
   artifacts:
     paths:
     - dist/
-  tags:
-    - shell
 
 deploy:tags:
   stage: deploy
@@ -34,8 +33,6 @@ deploy:tags:
     - branches
   dependencies:
     - build:tags
-  tags:
-    - shell
 
 build:master:
   stage: build
@@ -48,8 +45,6 @@ build:master:
   artifacts:
     paths:
     - dist/
-  tags:
-    - shell
 
 deploy:master:
   stage: deploy
@@ -60,5 +55,3 @@ deploy:master:
     - master
   dependencies:
     - build:master
-  tags:
-    - shell
