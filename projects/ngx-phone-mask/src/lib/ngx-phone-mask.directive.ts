@@ -1,278 +1,175 @@
-import { Directive, ElementRef, forwardRef, HostListener, Input, OnInit } from '@angular/core';
-import { Formatter } from './formatter.class';
-import { NG_VALUE_ACCESSOR } from '@angular/forms';
-import { MaskService } from './mask-service.class';
-import { copy, isDefined } from './utils';
+import {
+	Directive,
+	ElementRef,
+	forwardRef,
+	Inject, Input,
+	OnChanges, OnInit,
+	Optional,
+	Renderer2,
+	SimpleChanges
+} from '@angular/core';
+import { NG_VALUE_ACCESSOR, ControlValueAccessor, COMPOSITION_BUFFER_MODE } from '@angular/forms';
+import { ɵgetDOM as getDOM } from '@angular/platform-browser';
+import { createTextMaskInputElement } from 'text-mask-core/dist/textMaskCore';
 
-const noop = () => {
+export class TextMaskConfig {
+	mask: Array<string | RegExp> | ((raw: string) => Array<string | RegExp>) | false;
+	guide?: boolean;
+	placeholderChar?: string;
+	pipe?: (conformedValue: string, config: TextMaskConfig) => false | string | object;
+	keepCharPositions?: boolean;
+	showMask?: boolean;
+}
+
+const clean = (number) => {
+	return number
+		.toString()
+		.replace(/[^\d\^\+]/gm, '');
 };
 
-@Directive({
-	selector: '[ngxPhoneMask]',
-	providers: [
-		{
-			provide: NG_VALUE_ACCESSOR,
-			useExisting: forwardRef(() => NgxPhoneMaskDirective),
-			multi: true
-		}
-	]
-})
-/*
-export class NgxPhoneMaskDirective {
-	private onTouchedCallback: () => void = noop;
-	private onChangeCallback: (_: any) => void = noop;
-
-	input: HTMLInputElement;
-	formatter;
-	overrideCursorPositions: Array<number>;
-
-	constructor(private el: ElementRef) {
-		this.formatter = new Formatter();
-		this.input = this.el.nativeElement;
-	}
-
-	@HostListener('input', ['$event'])
-	onInput(event) {
-		const cursorPositions = [this.input.selectionStart, this.input.selectionEnd];
-		this.formatter.onInput(event, (this.overrideCursorPositions || cursorPositions));
-		this.updateValueAndPositions();
-	}
-
-	@HostListener('select', ['$event'])
-	onSelectionChange(event) {
-		this.overrideCursorPositions = [this.input.selectionStart, this.input.selectionEnd];
-		// this.formatter.
-	}
-
-	writeValue(value: string) {
-		this.formatter.setValue(value);
-		this.updateValueAndPositions();
-	}
-
-	registerOnChange(fn: any) {
-		this.onChangeCallback = fn;
-	}
-
-	registerOnTouched(fn: any) {
-		this.onTouchedCallback = fn;
-	}
-
-	updateValueAndPositions() {
-		this.input.value = this.formatter.inputValue;
-		this.input.setSelectionRange(this.formatter.cursorPositions[0], this.formatter.cursorPositions[1]);
-		this.overrideCursorPositions = null;
-	}
+/**
+ * We must check whether the agent is Android because composition events
+ * behave differently between iOS and Android.
+ */
+function _isAndroid(): boolean {
+	const userAgent = getDOM() ? getDOM().getUserAgent() : '';
+	return /android (\d+)/.test(userAgent.toLowerCase());
 }
-*/
-export class NgxPhoneMaskDirective implements OnInit {
-	private onTouchedCallback: () => void = noop;
-	private onChangeCallback: (_: any) => void = noop;
 
-	input: HTMLInputElement;
-	@Input() mask = '+9 (999) 999-99-99';
-
-	@Input() repeat = '';
+@Directive({
+	host: {
+		'(input)': '_handleInput($event.target.value)',
+		'(blur)': 'onTouched()',
+		'(compositionstart)': '_compositionStart()',
+		'(compositionend)': '_compositionEnd($event.target.value)'
+	},
+	selector: '[ngxPhoneMask]',
+	exportAs: 'ngxPhoneMask',
+	providers: [{
+		provide: NG_VALUE_ACCESSOR,
+		useExisting: forwardRef(() => NgxPhoneMaskDirective),
+		multi: true
+	}]
+})
+export class NgxPhoneMaskDirective implements ControlValueAccessor, OnChanges, OnInit {
 	@Input() clean = true;
-	@Input() limit = true;
-	@Input() restrict: 'select' | 'reject' | 'accept' = 'reject';
-	private validate = false;
 
-	value = '';
+	textMaskConfig: TextMaskConfig = {
+		mask: ['+', /[1-9]/, ' ', '(', /[1-9]/, /\d/, /\d/, ')', ' ', /\d/, /\d/, /\d/, '-', /\d/, /\d/, '-', /\d/, /\d/],
+		guide: false,
+		placeholderChar: '_',
+		pipe: undefined,
+		keepCharPositions: false,
+	};
 
-	maskService;
-	options;
+	private textMaskInputElement: any;
+	private inputElement: HTMLInputElement;
 
-	constructor(private el: ElementRef) {
-		this.input = this.el.nativeElement;
-	}
+	/** Whether the user is creating a composition string (IME events). */
+	private _composing = false;
 
-	private timeout;
+	onChange = (_: any) => {
+	};
+	onTouched = () => {
+	};
 
-	setSelectionRange(selectionStart) {
-		if (typeof selectionStart !== 'number') {
-			return;
-		}
-
-		// using $timeout:
-		// it should run after the DOM has been manipulated by Angular
-		// and after the browser renders (which may cause flicker in some cases)
-		clearTimeout(this.timeout);
-		this.timeout = setTimeout(() => {
-			const selectionEnd = selectionStart + 1;
-			const input = this.input;
-
-			if (input.setSelectionRange) {
-				input.focus();
-				input.setSelectionRange(selectionStart, selectionEnd);
-			} else if ((<any>input).createTextRange) {
-				const range = (<any>input).createTextRange();
-
-				range.collapse(true);
-				range.moveEnd('character', selectionEnd);
-				range.moveStart('character', selectionStart);
-				range.select();
-			}
-		});
-	}
-
-	async ngOnInit() {
-		this.maskService = MaskService.create();
-
-		await this.maskService.generateRegex({
-			mask: this.mask,
-			// repeat mask expression n times
-			repeat: this.repeat,
-			// clean model value - without divisors
-			clean: this.clean,
-			// limit length based on mask length
-			limit: this.limit,
-			// how to act with a wrong value
-			restrict: this.restrict, //select, reject, accept
-			// set validity mask
-			validate: this.validate,
-			// default model value
-			model: this.value,
-			// default input value
-			value: this.value
-		});
-		// get initial options
-		// let timeout;
-		this.options = this.maskService.getOptions();
-
-		// it should run after the DOM has been manipulated by Angular
-		// but before the browser renders
-		if (this.options.value) {
-			setTimeout(() => this.setViewValue(copy(this.options.value)));
+	constructor(
+		private _renderer: Renderer2,
+		private _elementRef: ElementRef,
+		@Optional() @Inject(COMPOSITION_BUFFER_MODE) private _compositionMode: boolean
+	) {
+		if (this._compositionMode == null) {
+			this._compositionMode = !_isAndroid();
 		}
 	}
 
-	@HostListener('click')
-	@HostListener('input')
-	@HostListener('paste')
-	@HostListener('keyup')
-	onInput() {
-		// this.timeout = setTimeout(() => {
-		// 	// Manual debounce to prevent multiple execution
-		// 	clearTimeout(this.timeout);
-
-		this.parseViewValue(this.input.value);
-		// }, 0);
+	ngOnInit() {
+		this._setupMask(true);
+		if (this.textMaskInputElement !== undefined) {
+			this.textMaskInputElement.update(this.inputElement.value);
+		}
 	}
 
-	parseViewValue(value) {
-		const untouchedValue = value;
-		// set default value equal 0
-		value = value || '';
+	ngOnChanges(changes: SimpleChanges) {
+		this._setupMask(true);
+		if (this.textMaskInputElement !== undefined) {
+			this.textMaskInputElement.update(this.inputElement.value);
+		}
+	}
 
-		// get view value object
-		let viewValue = this.maskService.getViewValue(value);
+	@HostListener('blur')
+	onBlur() {
+		this.onTouched();
+	}
 
-		// get mask without question marks
-		const maskWithoutOptionals = this.options['maskWithoutOptionals'] || '';
+	writeValue(value: any) {
+		this._setupMask();
 
-		// get view values capped
-		// used on view
-		let viewValueWithDivisors = viewValue.withDivisors(true);
-		// used on model
-		let viewValueWithoutDivisors = viewValue.withoutDivisors(true);
+		// set the initial value for cases where the mask is disabled
+		const normalizedValue = value == null ? '' : value;
+		this._renderer.setProperty(this.inputElement, 'value', normalizedValue);
 
-		try {
-			// get current regex
-			const regex = this.maskService.getRegex(viewValueWithDivisors.length - 1);
-			const fullRegex = this.maskService.getRegex(maskWithoutOptionals.length - 1);
+		if (this.textMaskInputElement !== undefined) {
+			this.textMaskInputElement.update(value);
+		}
+	}
 
-			// current position is valid
-			const validCurrentPosition = regex.test(viewValueWithDivisors) || fullRegex.test(viewValueWithDivisors);
+	registerOnChange(fn: (_: any) => void): void {
+		this.onChange = fn;
+	}
 
-			// difference means for select option
-			const diffValueAndViewValueLengthIsOne = (value.length - viewValueWithDivisors.length) === 1;
-			const diffMaskAndViewValueIsGreaterThanZero = (maskWithoutOptionals.length - viewValueWithDivisors.length) > 0;
+	registerOnTouched(fn: () => void): void {
+		this.onTouched = fn;
+	}
 
-			if (this.options.restrict !== 'accept') {
-				if (this.options.restrict === 'select' && (!validCurrentPosition || diffValueAndViewValueLengthIsOne)) {
-					const lastCharInputed = value[(value.length - 1)];
-					const lastCharGenerated = viewValueWithDivisors[(viewValueWithDivisors.length - 1)];
+	setDisabledState(isDisabled: boolean): void {
+		this._renderer.setProperty(this._elementRef.nativeElement, 'disabled', isDisabled);
+	}
 
-					if ((lastCharInputed !== lastCharGenerated) && diffMaskAndViewValueIsGreaterThanZero) {
-						viewValueWithDivisors = viewValueWithDivisors + lastCharInputed;
-					}
+	_handleInput(value) {
+		if (!this._compositionMode || (this._compositionMode && !this._composing)) {
+			this._setupMask();
 
-					const wrongPosition = this.maskService.getFirstWrongPosition(viewValueWithDivisors);
-					if (isDefined(wrongPosition)) {
-						this.setSelectionRange(wrongPosition);
-					}
-				} else if (this.options.restrict === 'reject' && !validCurrentPosition) {
-					viewValue = this.maskService.removeWrongPositions(viewValueWithDivisors);
-					viewValueWithDivisors = viewValue.withDivisors(true);
-					viewValueWithoutDivisors = viewValue.withoutDivisors(true);
+			if (this.textMaskInputElement !== undefined) {
+				this.textMaskInputElement.update(value);
 
-					// setSelectionRange(viewValueWithDivisors.length);
+				// get the updated value
+				value = this.inputElement.value;
+
+				if (this.clean) {
+					this.onChange(clean(value));
+				} else {
+					this.onChange(value);
 				}
 			}
+		}
+	}
 
-			if (!this.options.limit) {
-				viewValueWithDivisors = viewValue.withDivisors(false);
-				viewValueWithoutDivisors = viewValue.withoutDivisors(false);
+	_setupMask(create = false) {
+		if (!this.inputElement) {
+			if (this._elementRef.nativeElement.tagName.toUpperCase() === 'INPUT') {
+				// `textMask` directive is used directly on an input element
+				this.inputElement = this._elementRef.nativeElement;
+			} else {
+				// `textMask` directive is used on an abstracted input element, `md-input-container`, etc
+				this.inputElement = this._elementRef.nativeElement.getElementsByTagName('INPUT')[0];
 			}
-
-			// Set validity
-			/**
-			 * TODO: Validation
-			 if (this.options.validate && controller.$dirty) {
-							if (fullRegex.test(viewValueWithDivisors) || controller.$isEmpty(untouchedValue)) {
-								controller.$setValidity('mask', true);
-							} else {
-								controller.$setValidity('mask', false);
-							}
-						}
-			 */
-
-			// Update view and model values
-			if (value !== viewValueWithDivisors) {
-				const oldValue = this.input.value;
-				this.setViewValue(copy(viewValueWithDivisors));
-				const firstChange = oldValue.split('').findIndex((c, i) => c !== viewValueWithDivisors[i]);
-				if (firstChange > 0) {
-					setTimeout(() => this.input.setSelectionRange(firstChange, firstChange));
-				}
-				console.log(firstChange);
-
-				console.log(viewValueWithDivisors, viewValueWithoutDivisors);
-				// Not using $setViewValue so we don't clobber the model value and dirty the form
-				// without any kind of user interaction.
-			}
-
-
-		} catch (e) {
-			console.error('[mask - parseViewValue]');
-			throw e;
 		}
 
-		// Update model, can be different of view value
-		if (this.options.clean) {
-			return viewValueWithoutDivisors;
-		} else {
-			return viewValueWithDivisors;
+		if (this.inputElement && create) {
+			this.textMaskInputElement = createTextMaskInputElement(
+				Object.assign({ inputElement: this.inputElement }, this.textMaskConfig)
+			);
 		}
+
 	}
 
-	setViewValue(value) {
-		this.input.value = value;
-		this.onChangeCallback(this.parseViewValue(value));
+	_compositionStart(): void {
+		this._composing = true;
 	}
 
-	writeValue(value: string) {
-		this.value = value;
-		if (isDefined(value) && this.options) {
-			this.parseViewValue(value);
-		}
-	}
-
-	registerOnChange(fn: any) {
-		this.onChangeCallback = fn;
-	}
-
-	registerOnTouched(fn: any) {
-		this.onTouchedCallback = fn;
+	_compositionEnd(value: any): void {
+		this._composing = false;
+		this._compositionMode && this._handleInput(value);
 	}
 }

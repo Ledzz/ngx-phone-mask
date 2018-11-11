@@ -1,27 +1,57 @@
-# NgxPhoneMask
+# NgxPhoneMask ![pipeline status](https://gitlab.com/Ledzz/ngx-phone-mask/badges/master/pipeline.svg)
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 6.0.8.
+Angular directive for autoformatting phone numbers. Compatible with Angular 7.
+Currently doesn't support phone numbers with lengths other than 11. (`+7 (987) 123-45-67`)
 
-## Development server
+[Demo](https://ngx-phone-mask.surge.sh/)
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
 
-## Code scaffolding
+## Usage
+This libs rely on text-mask, so you need to install it.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+Install via npm:
+```shell
+npm install ngx-phone-mask angular2-text-mask
+```
+or yarn:
+```shell
+yarn add ngx-phone-mask angular2-text-mask
+```
 
-## Build
+Import in your `app.module.ts`:
+```ts
+import { NgxPhoneMaskModule } from 'ngx-phone-mask';
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `--prod` flag for a production build.
+@NgModule({
+  imports: [
+    NgxPhoneMaskModule
+  ]
+})
+```
 
-## Running unit tests
+Use it:
+```html
+<input ngxPhoneMask [(ngModel)]='yourModelName'>
+or
+<input ngxPhoneMask [formControl]='yourControl'>
+or
+<input ngxPhoneMask formControlName='yourControlName'>
+```
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+## Config
+You can set `clean` to `false` if you want formatted value in model.
+```html
+<input ngxPhoneMask [(ngModel)]='yourModelName' valueType='full'>
 
-## Running end-to-end tests
+```
 
-Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protractortest.org/).
+## Contribution
+This component is under development. Pull requests and issues (PR's better) are welcome.
 
-## Further help
+## Contributing
+Please feel free to leave your PRs, issues, feature requests.
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/master/README.md).
+## Upcoming features
+- [ ] Support other phone lengths
+- [ ] Return country when recognized
+- [ ] Tests
