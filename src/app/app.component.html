@@ -6,3 +6,6 @@
 
 <h2>Formatted model value</h2>
 {{number | ngxPhoneMask}}
+
+<h1>Limited to 12 digits</h1>
+<input type='text' ngxPhoneMask [(ngModel)]='number' [maxNumberLength]='12'>

@@ -4,8 +4,8 @@ export const clean = (number) => {
 		.replace(/[^\d\^\+]/gm, '');
 };
 
-export const mask = () => (rawValue) => {
-	if (clean(rawValue).length <= 12) {
+export const mask = (maxLength: number = 13) => (rawValue) => {
+	if (clean(rawValue).length <= 12 || maxLength === 12) {
 		return ['+', /[1-9]/, ' ', '(', /[1-9]/, /\d/, /\d/, ')', ' ', /\d/, /\d/, /\d/, '-', /\d/, /\d/, '-', /\d/, /\d/];
 	}
 

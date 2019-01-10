@@ -48,14 +48,9 @@ function _isAndroid(): boolean {
 })
 export class NgxPhoneMaskDirective implements ControlValueAccessor, OnChanges, OnInit {
 	@Input() clean = true;
+	@Input() maxNumberLength: number = 13;
 
-	textMaskConfig: TextMaskConfig = {
-		mask: mask(),
-		guide: false,
-		placeholderChar: '_',
-		pipe: undefined,
-		keepCharPositions: false,
-	};
+	textMaskConfig: TextMaskConfig;
 
 	private textMaskInputElement: any;
 	private inputElement: HTMLInputElement;
@@ -141,6 +136,13 @@ export class NgxPhoneMaskDirective implements ControlValueAccessor, OnChanges, O
 	}
 
 	_setupMask(create = false) {
+		this.textMaskConfig = {
+			mask: mask(this.maxNumberLength),
+			guide: false,
+			placeholderChar: '_',
+			pipe: undefined,
+			keepCharPositions: false,
+		};
 		if (!this.inputElement) {
 			if (this._elementRef.nativeElement.tagName.toUpperCase() === 'INPUT') {
 				// `textMask` directive is used directly on an input element
